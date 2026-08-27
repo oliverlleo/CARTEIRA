@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NEXT_TELEMETRY_DISABLED: 1
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/carteira
+      NEON_AUTH_BASE_URL: https://auth.example.invalid
+      NEON_AUTH_COOKIE_SECRET: github-actions-cookie-secret-at-least-32-characters
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Use lockfile-compatible npm
+        run: npm install --global npm@11.9.0
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Next.js types
+        run: npx next typegen
+
+      - name: Check TypeScript
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test -- --passWithNoTests
+
+      - name: Build application
+        run: npm run build
