@@ -89,7 +89,7 @@ export async function createManualTransaction(input: {
 }
 
 export async function listTransactions(walletId: string, userId: string) {
-  return sql`
+  const rows = await sql`
     SELECT t.id,t.description,t.kind,t.direction,t.status,t.amount::text,t.occurred_on::text,
            c.name AS category_name,a.name AS account_name
     FROM public.transactions t
@@ -99,5 +99,7 @@ export async function listTransactions(walletId: string, userId: string) {
       AND public.can_read_wallet(${walletId}::uuid,${userId}::uuid)
     ORDER BY t.occurred_on DESC,t.created_at DESC
     LIMIT 100
-  ` as Promise<Array<{id:string;description:string;kind:string;direction:string;status:string;amount:string;occurred_on:string;category_name:string|null;account_name:string}>>;
+  `;
+
+  return rows as Array<{id:string;description:string;kind:string;direction:string;status:string;amount:string;occurred_on:string;category_name:string|null;account_name:string}>;
 }
